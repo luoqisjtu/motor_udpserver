@@ -16,7 +16,7 @@ using System.IO.Ports;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
+
 
 namespace UDP
 {
@@ -43,63 +43,18 @@ namespace UDP
             byte[] configRead = new byte[configReadLength];
 
             /* int m = sp1.BytesToRead;  */                           //BytesToRead:sp1接收的字符个数
-                                                                      //byte[] receivedData = new byte[sp1.BytesToRead];
-                                                                      //int receivedDataLength = 8;
-                                                                      //byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
+            //                                                          //byte[] receivedData = new byte[sp1.BytesToRead];
+            int receivedDataLength =20;
+            byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
 
 
             int n = 0;
-
-
-            Task.Factory.StartNew(async () =>
-            {
+                                   
                 while (true)
                 {
-
-
-                    configRead[0] = 0xFF;
-                    configRead[1] = 0xFF;
-                    configRead[2] = 0x01;
-                    configRead[3] = 0x04;
-                    configRead[4] = 0x02;
-                    configRead[5] = 0x38;
-                    configRead[6] = 0x02;
-                    configRead[7] = 0xBE;
-                    await sp1.BaseStream.FlushAsync();
-
-                    await sp1.BaseStream.WriteAsync(configRead, 0, configRead.Length);
-                    //sp1.read(receiveddata, 0, 8);         //读取数据
-
-
-                    Byte[] receivedData = new Byte[8];        //创建接收字节数组
-
-
-                    //await Task.Delay(10);
-                    //await sp1.BaseStream.ReadAsync(receivedData, 0, 8);
-
-
-                    //ushort Currentpos = 0;   //一个16位整形变量，初值为 0000 0000 0000 0000
-                    //if ((receivedData[0] == 0xFF) && (receivedData[1] == 0xFF))
-                    //{
-                    //    Currentpos = (ushort)((receivedData[6] << 8) + receivedData[5]);
-                    //}
-
-                    string message = await SerialReadLineAsync(sp1);
-
-                    Console.WriteLine(message);
-
-                    //if (n == 500)
-                    //    break;
-                }
-
-            });
-
-            Task.Factory.StartNew(async () =>
-            {
-                while (true)
-                {
-                    //Send something to Motor
-
+                //Send something to Motor
+                    //double f = 0.2; //in Hz
+                    
                     double positionangle = Math.Sin(n * Math.PI / 180) * 4095;
                     n++;     //n = n + 1; 
                     int position = (int)positionangle;
@@ -135,65 +90,108 @@ namespace UDP
                     byteBuffer[11] = speed_H;
                     byteBuffer[12] = CheckSum;
 
+                    sp1.Write(byteBuffer, 0, byteBuffer.Length);
+                    System.Threading.Thread.Sleep(10);
 
-                    //Console.WriteLine( position);
+               
+                configRead[0] = 0xFF;
+                configRead[1] = 0xFF;
+                configRead[2] = 0x01;
+                configRead[3] = 0x04;
+                configRead[4] = 0x02;
+                configRead[5] = 0x38;
+                configRead[6] = 0x02;
+                configRead[7] = 0xBE;
 
-                    await sp1.BaseStream.WriteAsync(byteBuffer, 0, byteBuffer.Length);
+                //sp1.BaseStream.Write(configRead, 0, configRead.Length);
+                sp1.Write(configRead, 0, configRead.Length);
 
-                    //System.Threading.Thread.Sleep(20);
+                //sp1.BaseStream.FlushAsync()
+                sp1.BaseStream.Flush();
 
+                System.Threading.Thread.Sleep(10);
 
-                    //configRead[0] = 0xFF;
-                    //configRead[1] = 0xFF;
-                    //configRead[2] = 0x01;
-                    //configRead[3] = 0x04;
-                    //configRead[4] = 0x02;
-                    //configRead[5] = 0x3C;
-                    //configRead[6] = 0x02;
-                    //configRead[7] = 0xBA;
+                sp1.Read(receivedData, 0, receivedDataLength);
+                //sp1.basestream.readasync(receiveDdata, 0, 8);
 
+                ushort Currentpos = 0;   //一个16位整形变量，初值为 0000 0000 0000 0000
+                byte b1 = receivedData[6];   //一个byte的变量，作为转换后的高8位
+                byte b2 = receivedData[5];   //一个byte的变量，作为转换后的低8位
+                //Currentpos = (short)(Currentpos ^ b1);  //将b1赋给Currentpos的低8位
+                //Currentpos = (short)(Currentpos << 8);  //Currentpos的低8位移动到高8位
+                //Currentpos = (short)(Currentpos ^ b2); //在b2赋给Currentpos的低8位       && Currentpos <= 4095
 
-                    await Task.Delay(10);
-
-                }
-            });
-
-            string read;
-            do
-            {
-                read = Console.ReadLine();
-            } while (read != "q");
-
-
-
-
-        }
+                Currentpos = (ushort)((b1 << 8) + b2);
 
 
-        public static async Task<string> SerialReadLineAsync(SerialPort serialPort)
-        {
-            byte[] buffer = new byte[1];
-            string result = string.Empty;
-            Debug.WriteLine("Let's start reading.");
-
-            while (true)
-            {
-                await serialPort.BaseStream.ReadAsync(buffer, 0, 1);
-                result += serialPort.Encoding.GetString(buffer);
-
-                if (result.EndsWith(serialPort.NewLine))
+                if (receivedData[0] == 0xFF && receivedData[1] == 0xFF && receivedData[2] == 0x01 && receivedData[3] == 0x04)
                 {
-                    result = result.Substring(0, result.Length - serialPort.NewLine.Length);
-                    result.TrimEnd('\r', '\n');
-                    Debug.Write(string.Format("Data: {0}", result));
-                    result += "\r\n";
-                    return result;
+
+                    Console.WriteLine(Currentpos); //以十进制输出Currentpos
                 }
+
+                else
+                {
+
+                    Console.WriteLine("错误提示");
+
+                }
+
+
+
+
+
+                //Console.WriteLine(Convert.ToString(Currentpos, 2)); //以二进制输出Currentpos
+
+                //Console.WriteLine(Convert.ToInt32("0xCurrentpos", 16));
+
+                //Console.WriteLine("Target position:" + position);
+
+                //if (n == 500)
+                //    break;
+
+
             }
+
         }
+
        
-    }
+        
+           
+
+
+
+
+
+        }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+
+
+
 
 
 
