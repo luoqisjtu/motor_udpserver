@@ -16,7 +16,7 @@ using System.IO.Ports;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
+
 
 namespace UDP
 {
@@ -43,55 +43,21 @@ namespace UDP
             byte[] configRead = new byte[configReadLength];
 
             /* int m = sp1.BytesToRead;  */                           //BytesToRead:sp1接收的字符个数
-                                                                      //byte[] receivedData = new byte[sp1.BytesToRead];
-                                                                      //int receivedDataLength = 8;
-                                                                      //byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
+            //                                                          //byte[] receivedData = new byte[sp1.BytesToRead];
+            //int receivedDataLength = 20;
+            //byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
+
+            sp1.DataReceived += new SerialDataReceivedEventHandler(sp1_DataReceived);
+
 
 
             int n = 0;
-
-
-            Task.Factory.StartNew(async () =>
-            {
+                                   
                 while (true)
                 {
-
-
-                    configRead[0] = 0xFF;
-                    configRead[1] = 0xFF;
-                    configRead[2] = 0x01;
-                    configRead[3] = 0x04;
-                    configRead[4] = 0x02;
-                    configRead[5] = 0x38;
-                    configRead[6] = 0x02;
-                    configRead[7] = 0xBE;
-                    await sp1.BaseStream.FlushAsync();
-
-                    await sp1.BaseStream.WriteAsync(configRead, 0, configRead.Length);
-                    //sp1.read(receiveddata, 0, 8);         //读取数据
-
-
-                    Byte[] receivedData = new Byte[8];        //创建接收字节数组
-
-                    await sp1.BaseStream.ReadAsync(receivedData, 0, 8);
+                //Send something to Motor
+                    //double f = 0.2; //in Hz
                     
-
-                    Console.WriteLine("Current pos:" + receivedData[5]);
-
-                    //if (n == 500)
-                    //    break;
-                    await Task.Delay(20);
-
-                }
-
-            });
-
-            Task.Factory.StartNew(async () =>
-            {
-                while (true)
-                {
-                    //Send something to Motor
-
                     double positionangle = Math.Sin(n * Math.PI / 180) * 4095;
                     n++;     //n = n + 1; 
                     int position = (int)positionangle;
@@ -127,84 +93,110 @@ namespace UDP
                     byteBuffer[11] = speed_H;
                     byteBuffer[12] = CheckSum;
 
+                    //sp1.Write(byteBuffer, 0, byteBuffer.Length);
+                    System.Threading.Thread.Sleep(10);
 
-                    Console.WriteLine("Target position:" + byteBuffer[6]);
+               
+                configRead[0] = 0xFF;
+                configRead[1] = 0xFF;
+                configRead[2] = 0x01;
+                configRead[3] = 0x04;
+                configRead[4] = 0x02;
+                configRead[5] = 0x38;
+                configRead[6] = 0x02;
+                configRead[7] = 0xBE;
 
-                    await sp1.BaseStream.WriteAsync(byteBuffer, 0, byteBuffer.Length);
+                //sp1.BaseStream.Write(configRead, 0, configRead.Length);
+                sp1.Write(configRead, 0, configRead.Length);
 
-                    //System.Threading.Thread.Sleep(20);
+                //sp1.BaseStream.FlushAsync()
+                //sp1.BaseStream.Flush();
 
+                //sp1.BaseStream.Read(receivedData, 0, receivedDataLength);
+                //sp1.basestream.readasync(receiveDdata, 0, 8);
 
-                    //configRead[0] = 0xFF;
-                    //configRead[1] = 0xFF;
-                    //configRead[2] = 0x01;
-                    //configRead[3] = 0x04;
-                    //configRead[4] = 0x02;
-                    //configRead[5] = 0x3C;
-                    //configRead[6] = 0x02;
-                    //configRead[7] = 0xBA;
+               
+                //Console.WriteLine("Target position:" + position);
 
-
-                    await Task.Delay(10);
-
-                }
-            });
-                
-            string read;
-            do
-            {
-                read = Console.ReadLine();
-            } while (read != "q");
-
+                //if (n == 500)
+                //    break;
 
 
+            }
 
         }
 
+       
+
+        static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            if (sp1.IsOpen)     //此处可能没有必要判断是否打开串口，但为了严谨性，我还是加上了
+            {
 
 
+                byte[] byteRead = new byte[sp1.BytesToRead];    //BytesToRead:sp1接收的字符个数
+
+                {
+                    try
+                    {
+                        Byte[] receivedData = new Byte[sp1.BytesToRead];        //创建接收字节数组
+                        sp1.Read(receivedData, 0, 8);         //读取数据
+                        //string text = sp1.Read();   //Encoding.ASCII.GetString(receivedData);
+                        //sp1.DiscardInBuffer();                                  //清空SerialPort控件的Buffer
+
+                        ushort Currentpos = 0;   //一个16位整形变量，初值为 0000 0000 0000 0000
+                        Currentpos = (ushort)((receivedData[6] << 8) + receivedData[5]);
 
 
+                        Console.WriteLine(Currentpos);
+
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Console.WriteLine(ex.Message, "出错提示");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("请打开某个串口", "错误提示");
+            }
+        }
+               
 
 
-
-
-
-
-        //static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
-        //{
-        //    if (sp1.IsOpen)     //此处可能没有必要判断是否打开串口，但为了严谨性，我还是加上了
-        //    {
-
-
-        //        byte[] byteRead = new byte[sp1.BytesToRead];    //BytesToRead:sp1接收的字符个数
-
-        //        {
-        //            try
-        //            {
-        //                Byte[] receivedData = new Byte[sp1.BytesToRead];        //创建接收字节数组
-        //                sp1.Read(receivedData, 0, receivedData.Length);         //读取数据
-        //                //string text = sp1.Read();   //Encoding.ASCII.GetString(receivedData);
-        //                //sp1.DiscardInBuffer();                                  //清空SerialPort控件的Buffer
-        //                Console.WriteLine(receivedData[5]);
-
-        //            }
-        //            catch (System.Exception ex)
-        //            {
-        //                Console.WriteLine(ex.Message, "出错提示");
-        //            }
-        //        }
-        //    }
-        //    else
-        //    {
-        //        Console.WriteLine("请打开某个串口", "错误提示");
-        //    }
-        //}
 
 
 
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+
+
+
 
 
 
