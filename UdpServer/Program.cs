@@ -16,7 +16,7 @@ using System.IO.Ports;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-
+using System.Threading.Tasks;
 
 namespace UDP
 {
@@ -44,12 +44,50 @@ namespace UDP
 
             /* int m = sp1.BytesToRead;  */                           //BytesToRead:sp1接收的字符个数
                                                                       //byte[] receivedData = new byte[sp1.BytesToRead];
-            int receivedDataLength = 8;
-            byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
+                                                                      //int receivedDataLength = 8;
+                                                                      //byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
 
 
             int n = 0;
-                                   
+
+
+            Task.Factory.StartNew(async () =>
+            {
+                while (true)
+                {
+
+
+                    configRead[0] = 0xFF;
+                    configRead[1] = 0xFF;
+                    configRead[2] = 0x01;
+                    configRead[3] = 0x04;
+                    configRead[4] = 0x02;
+                    configRead[5] = 0x38;
+                    configRead[6] = 0x02;
+                    configRead[7] = 0xBE;
+                    await sp1.BaseStream.FlushAsync();
+
+                    await sp1.BaseStream.WriteAsync(configRead, 0, configRead.Length);
+                    //sp1.read(receiveddata, 0, 8);         //读取数据
+
+
+                    Byte[] receivedData = new Byte[8];        //创建接收字节数组
+
+                    await sp1.BaseStream.ReadAsync(receivedData, 0, 8);
+                    
+
+                    Console.WriteLine("Current pos:" + receivedData[5]);
+
+                    //if (n == 500)
+                    //    break;
+                    await Task.Delay(20);
+
+                }
+
+            });
+
+            Task.Factory.StartNew(async () =>
+            {
                 while (true)
                 {
                     //Send something to Motor
@@ -89,39 +127,39 @@ namespace UDP
                     byteBuffer[11] = speed_H;
                     byteBuffer[12] = CheckSum;
 
-                    sp1.Write(byteBuffer, 0, byteBuffer.Length);
-                    System.Threading.Thread.Sleep(10);
 
-                    configRead[0] = 0xFF;
-                    configRead[1] = 0xFF;
-                    configRead[2] = 0x01;
-                    configRead[3] = 0x04;
-                    configRead[4] = 0x02;
-                    configRead[5] = 0x38;
-                    configRead[6] = 0x02;
-                    configRead[7] = 0xBE;
+                    Console.WriteLine("Target position:" + byteBuffer[6]);
 
-                    //sp1.BaseStream.Write(configRead, 0, configRead.Length);
-                    sp1.Write(configRead, 0, configRead.Length);
+                    await sp1.BaseStream.WriteAsync(byteBuffer, 0, byteBuffer.Length);
 
-                    sp1.Read(receivedData, 0, receivedDataLength);
-                //sp1.basestream.readasync(receiveDdata, 0, 8);
+                    //System.Threading.Thread.Sleep(20);
 
-                Console.WriteLine("Current pos:" + receivedData[5]);
-                //Console.WriteLine("receivedData:" + receivedData);
 
-               
-                Console.WriteLine("Target position:" + byteBuffer[6]);
-                //Console.WriteLine(" byteBuffer:" + byteBuffer);
+                    //configRead[0] = 0xFF;
+                    //configRead[1] = 0xFF;
+                    //configRead[2] = 0x01;
+                    //configRead[3] = 0x04;
+                    //configRead[4] = 0x02;
+                    //configRead[5] = 0x3C;
+                    //configRead[6] = 0x02;
+                    //configRead[7] = 0xBA;
 
-                //if (n == 500)
-                //    break;
 
-              }
-         }
+                    await Task.Delay(10);
+
+                }
+            });
                 
-      }
- }
+            string read;
+            do
+            {
+                read = Console.ReadLine();
+            } while (read != "q");
+
+
+
+
+        }
 
 
 
@@ -131,32 +169,48 @@ namespace UDP
 
 
 
-//static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
-//{
-//    if (sp1.IsOpen)     //此处可能没有必要判断是否打开串口，但为了严谨性，我还是加上了
-//    {
 
 
-//        byte[] byteRead = new byte[sp1.BytesToRead];    //BytesToRead:sp1接收的字符个数
+        //static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        //{
+        //    if (sp1.IsOpen)     //此处可能没有必要判断是否打开串口，但为了严谨性，我还是加上了
+        //    {
 
-//        {
-//            try
-//            {
-//                Byte[] receivedData = new Byte[sp1.BytesToRead];        //创建接收字节数组
-//                sp1.Read(receivedData, 0, receivedData.Length);         //读取数据
-//                //string text = sp1.Read();   //Encoding.ASCII.GetString(receivedData);
-//                //sp1.DiscardInBuffer();                                  //清空SerialPort控件的Buffer
-//                Console.WriteLine(receivedData[5]);
 
-//            }
-//            catch (System.Exception ex)
-//            {
-//                Console.WriteLine(ex.Message, "出错提示");
-//            }
-//        }
-//    }
-//    else
-//    {
-//        Console.WriteLine("请打开某个串口", "错误提示");
-//    }
-//}
+        //        byte[] byteRead = new byte[sp1.BytesToRead];    //BytesToRead:sp1接收的字符个数
+
+        //        {
+        //            try
+        //            {
+        //                Byte[] receivedData = new Byte[sp1.BytesToRead];        //创建接收字节数组
+        //                sp1.Read(receivedData, 0, receivedData.Length);         //读取数据
+        //                //string text = sp1.Read();   //Encoding.ASCII.GetString(receivedData);
+        //                //sp1.DiscardInBuffer();                                  //清空SerialPort控件的Buffer
+        //                Console.WriteLine(receivedData[5]);
+
+        //            }
+        //            catch (System.Exception ex)
+        //            {
+        //                Console.WriteLine(ex.Message, "出错提示");
+        //            }
+        //        }
+        //    }
+        //    else
+        //    {
+        //        Console.WriteLine("请打开某个串口", "错误提示");
+        //    }
+        //}
+
+
+
+    }
+}
+
+
+
+
+
+
+
+
+
