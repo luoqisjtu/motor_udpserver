@@ -43,8 +43,8 @@ namespace UDP
             byte[] configRead = new byte[configReadLength];
 
             /* int m = sp1.BytesToRead;  */                           //BytesToRead:sp1接收的字符个数
-            //                                                          //byte[] receivedData = new byte[sp1.BytesToRead];
-            int receivedDataLength =20;
+                                                                      //byte[] receivedData = new byte[sp1.BytesToRead];
+            int receivedDataLength = 8;
             byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
 
 
@@ -52,9 +52,8 @@ namespace UDP
                                    
                 while (true)
                 {
-                //Send something to Motor
-                    //double f = 0.2; //in Hz
-                    
+                    //Send something to Motor
+
                     double positionangle = Math.Sin(n * Math.PI / 180) * 4095;
                     n++;     //n = n + 1; 
                     int position = (int)positionangle;
@@ -93,92 +92,55 @@ namespace UDP
                     sp1.Write(byteBuffer, 0, byteBuffer.Length);
                     System.Threading.Thread.Sleep(10);
 
-               
-                configRead[0] = 0xFF;
-                configRead[1] = 0xFF;
-                configRead[2] = 0x01;
-                configRead[3] = 0x04;
-                configRead[4] = 0x02;
-                configRead[5] = 0x38;
-                configRead[6] = 0x02;
-                configRead[7] = 0xBE;
+                    configRead[0] = 0xFF;
+                    configRead[1] = 0xFF;
+                    configRead[2] = 0x01;
+                    configRead[3] = 0x04;
+                    configRead[4] = 0x02;
+                    configRead[5] = 0x38;
+                    configRead[6] = 0x02;
+                    configRead[7] = 0xBE;
 
-                //sp1.BaseStream.Write(configRead, 0, configRead.Length);
-                sp1.Write(configRead, 0, configRead.Length);
+                    //sp1.BaseStream.Write(configRead, 0, configRead.Length);
+                    sp1.Write(configRead, 0, configRead.Length);
+                    System.Threading.Thread.Sleep(10);
 
-                //sp1.BaseStream.FlushAsync()
-                sp1.BaseStream.Flush();
-
-                System.Threading.Thread.Sleep(10);
+                Console.WriteLine("Target position:" + position);
 
                 sp1.Read(receivedData, 0, receivedDataLength);
                 //sp1.basestream.readasync(receiveDdata, 0, 8);
 
                 ushort Currentpos = 0;   //一个16位整形变量，初值为 0000 0000 0000 0000
-                byte b1 = receivedData[6];   //一个byte的变量，作为转换后的高8位
-                byte b2 = receivedData[5];   //一个byte的变量，作为转换后的低8位
+                //byte b1 = receivedData[6];   //一个byte的变量，作为转换后的高8位
+                //byte b2 = receivedData[5];   //一个byte的变量，作为转换后的低8位
                 //Currentpos = (short)(Currentpos ^ b1);  //将b1赋给Currentpos的低8位
                 //Currentpos = (short)(Currentpos << 8);  //Currentpos的低8位移动到高8位
-                //Currentpos = (short)(Currentpos ^ b2); //在b2赋给Currentpos的低8位       && Currentpos <= 4095
+                //Currentpos = (short)(Currentpos ^ b2); //在b2赋给Currentpos的低8位      
 
-                Currentpos = (ushort)((b1 << 8) + b2);
-
-
-                if (receivedData[0] == 0xFF && receivedData[1] == 0xFF && receivedData[2] == 0x01 && receivedData[3] == 0x04)
+                Currentpos = (ushort)((receivedData[6] << 8) + receivedData[5]);
+                 
+                if (receivedData[2] == 0x01 && receivedData[3] == 0x04)
                 {
 
-                    Console.WriteLine(Currentpos); //以十进制输出Currentpos
+                    Console.WriteLine("Current pos:" + Currentpos); //以十进制输出Currentpos
+
                 }
 
                 else
                 {
 
-                    Console.WriteLine("错误提示");
+                    Console.WriteLine("0");
 
                 }
 
-
-
-
-
-                //Console.WriteLine(Convert.ToString(Currentpos, 2)); //以二进制输出Currentpos
-
-                //Console.WriteLine(Convert.ToInt32("0xCurrentpos", 16));
-
-                //Console.WriteLine("Target position:" + position);
-
-                //if (n == 500)
+                //if (n == 1000)
                 //    break;
 
-
             }
-
         }
-
-       
-        
-           
-
-
-
-
-
-        }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                
+      }
+ }
 
 
 
@@ -189,15 +151,31 @@ namespace UDP
 
 
 //static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+//{
+//    if (sp1.IsOpen)     //此处可能没有必要判断是否打开串口，但为了严谨性，我还是加上了
+//    {
 
 
+//        byte[] byteRead = new byte[sp1.BytesToRead];    //BytesToRead:sp1接收的字符个数
 
+//        {
+//            try
+//            {
+//                Byte[] receivedData = new Byte[sp1.BytesToRead];        //创建接收字节数组
+//                sp1.Read(receivedData, 0, receivedData.Length);         //读取数据
+//                //string text = sp1.Read();   //Encoding.ASCII.GetString(receivedData);
+//                //sp1.DiscardInBuffer();                                  //清空SerialPort控件的Buffer
+//                Console.WriteLine(receivedData[5]);
 
-
-
-
-
-
-
-
-
+//            }
+//            catch (System.Exception ex)
+//            {
+//                Console.WriteLine(ex.Message, "出错提示");
+//            }
+//        }
+//    }
+//    else
+//    {
+//        Console.WriteLine("请打开某个串口", "错误提示");
+//    }
+//}
