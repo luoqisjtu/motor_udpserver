@@ -47,17 +47,36 @@ namespace UDP
             int receivedDataLength = 8;
             byte[] receivedData = new byte[receivedDataLength];//声明一个临时数组存储当前来的串口数据   /创建接收字节数组
 
-
+            ////先转到位置为0处
+            //byteBuffer[0] = 0xFF;
+            //byteBuffer[1] = 0xFF;
+            //byteBuffer[2] = 0x01;
+            //byteBuffer[3] = 0x09;
+            //byteBuffer[4] = 0x03;
+            //byteBuffer[5] = 0x2A;
+            //byteBuffer[6] = 0x00;
+            //byteBuffer[7] = 0x00;
+            //byteBuffer[8] = 0x00;
+            //byteBuffer[9] = 0x00;
+            //byteBuffer[10] = 0xE8;
+            //byteBuffer[11] = 0x03;
+            //byteBuffer[12] = 0xDD;
+            //sp1.Write(byteBuffer, 0, byteBuffer.Length);
+            //System.Threading.Thread.Sleep(6000);
+           
             int n = 0;
-                                   
-                while (true)
+           
+            string filename = "test.csv";
+            File.WriteAllText(filename, "");
+
+            while (true)
                 {
                     //Send something to Motor
 
-                    double positionangle = Math.Sin(n * Math.PI / 180) * 4095;
+                    double positionangle = Math.Sin(n * Math.PI / 180) * 2047;
                     n++;     //n = n + 1; 
                     int position = (int)positionangle;
-                    position = Math.Abs(position);
+                    //position = Math.Abs(position);
 
                     byte ID = 0x01;
                     byte Instuction = 0x03;
@@ -67,12 +86,12 @@ namespace UDP
                     byte position_H = (byte)(position >> 8);
                     byte time_L = 0x00;
                     byte time_H = 0x00;
-                    int speed = 1000;
+                    int speed =1500;
                     byte speed_L = (byte)(speed & 0xFF);
                     byte speed_H = (byte)(speed >> 8);
                     byte nLen = 0x07;
 
-                    byte msgLen = (byte)(nLen + 0x02);
+                    byte msgLen = (byte)(nLen + 0x02); 
                     byte CheckSum = (byte)~(ID + msgLen + Instuction + MemAddr + position_L + position_H + time_L + time_H + speed_L + speed_H);
 
                     byteBuffer[0] = 0xFF;
@@ -90,7 +109,7 @@ namespace UDP
                     byteBuffer[12] = CheckSum;
 
                     sp1.Write(byteBuffer, 0, byteBuffer.Length);
-                    System.Threading.Thread.Sleep(10);
+                    System.Threading.Thread.Sleep(5);
 
                     configRead[0] = 0xFF;
                     configRead[1] = 0xFF;
@@ -103,10 +122,10 @@ namespace UDP
 
                     //sp1.BaseStream.Write(configRead, 0, configRead.Length);
                     sp1.Write(configRead, 0, configRead.Length);
-                    System.Threading.Thread.Sleep(10);
+                    System.Threading.Thread.Sleep(5);
 
-                Console.WriteLine("Target position:" + position);
-
+                //Console.WriteLine("Target position:" + position);
+              
                 sp1.Read(receivedData, 0, receivedDataLength);
                 //sp1.basestream.readasync(receiveDdata, 0, 8);
 
@@ -118,20 +137,24 @@ namespace UDP
                 //Currentpos = (short)(Currentpos ^ b2); //在b2赋给Currentpos的低8位      
 
                 Currentpos = (ushort)((receivedData[6] << 8) + receivedData[5]);
-                 
+
                 if (receivedData[2] == 0x01 && receivedData[3] == 0x04)
                 {
 
-                    Console.WriteLine("Current pos:" + Currentpos); //以十进制输出Currentpos
+                    //Console.WriteLine("Current pos:" + Currentpos); //以十进制输出Currentpos          
 
+                    string s = Currentpos.ToString();
+                    s += "\n";
+                    File.AppendAllText(filename, s);
+              
                 }
 
-                else
-                {
+                //else
+                //{
 
-                    Console.WriteLine("0");
+                //    Console.WriteLine("0");
 
-                }
+                //}
 
                 //if (n == 1000)
                 //    break;
@@ -145,37 +168,3 @@ namespace UDP
 
 
 
-
-
-
-
-
-//static void sp1_DataReceived(object sender, SerialDataReceivedEventArgs e)
-//{
-//    if (sp1.IsOpen)     //此处可能没有必要判断是否打开串口，但为了严谨性，我还是加上了
-//    {
-
-
-//        byte[] byteRead = new byte[sp1.BytesToRead];    //BytesToRead:sp1接收的字符个数
-
-//        {
-//            try
-//            {
-//                Byte[] receivedData = new Byte[sp1.BytesToRead];        //创建接收字节数组
-//                sp1.Read(receivedData, 0, receivedData.Length);         //读取数据
-//                //string text = sp1.Read();   //Encoding.ASCII.GetString(receivedData);
-//                //sp1.DiscardInBuffer();                                  //清空SerialPort控件的Buffer
-//                Console.WriteLine(receivedData[5]);
-
-//            }
-//            catch (System.Exception ex)
-//            {
-//                Console.WriteLine(ex.Message, "出错提示");
-//            }
-//        }
-//    }
-//    else
-//    {
-//        Console.WriteLine("请打开某个串口", "错误提示");
-//    }
-//}
